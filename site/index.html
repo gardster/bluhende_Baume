@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Berlin trees with flowers</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src='https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js'></script>
+  <link href='https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css' rel='stylesheet' />
+  <style>
+    body { margin: 0; padding: 0; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    .button-container { position: absolute; top: 20px; left: 20px; z-index: 1; }
+    .button { margin-right: 10px; padding: 10px 20px; cursor: pointer; border: none; border-radius: 5px; font-size: 16px; }
+    .tooltip { position: absolute; padding: 10px; background-color: rgba(0, 0, 0, 0.7); color: white; border-radius: 5px; pointer-events: none; }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="button-container" id="button-container"></div>
+
+<script>
+  mapboxgl.accessToken = 'pk.eyJ1IjoiZ2FyZHN0ZXIiLCJhIjoiY2x1aDZqYXB2MjMzODJxcGlkcDFvYWR4byJ9.DvtLBmpfuzAXxxo8t8HJgQ';
+
+  var map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/streets-v12', // style URL
+    center: [13.41, 52.52],
+    zoom: 12,
+    customAttribution: 'Author: <a href="https://www.linkedin.com/in/dragunov/" target="_blank">Lev Dragunov</a> | Based on the open Berlin data: <a href="https://fbinter.stadt-berlin.de/fb/berlin/service_intern.jsp?id=s_wfs_baumbestand@senstadt&type=WFS" target="_blank">Baumbestand Berlin </a> | <a href="http://www.govdata.de/dl-de/by-2-0">dl-de/by-2-0</a>'
+  });
+
+  var layers = {
+    'magnolia': {
+      name: 'Magnolia',
+      color: '#DDA0DD',
+      path: './magnolia.geojson',
+      id: 'magnolia-layer'
+    },
+    'cherry': {
+      name: 'Cherry',
+      color: '#FFC0CB',
+      path: './cherry.geojson',
+      id: 'cherry-layer'
+    },
+    'pear': {
+      name: 'Pear',
+      color: '#8FBC8F',
+      path: './pear.geojson',
+      id: 'pear-layer'
+    },
+    'plum': {
+      name: 'Plum',
+      color: '#4B0082',
+      path: './plum.geojson',
+      id: 'plum-layer'
+    },
+    'apple': {
+      name: 'Apple',
+      color: '#228B22',
+      path: './apple.geojson',
+      id: 'apple-layer'
+    }
+  };
+
+  var buttonContainer = document.getElementById('button-container');
+
+  Object.keys(layers).forEach(function (layerName) {
+    var layer = layers[layerName];
+    var button = document.createElement('button');
+    button.className = 'button';
+    button.style.backgroundColor = layer.color;
+    button.textContent = layer.name;
+    button.onclick = function () {
+      toggleLayer(layerName);
+    };
+    buttonContainer.appendChild(button);
+  });
+
+  map.on('load', function () {
+    Object.keys(layers).forEach(function (layerName) {
+      var layer = layers[layerName];
+      map.addLayer({
+        'id': layer.id,
+        'type': 'circle',
+        'source': {
+          type: 'geojson',
+          data: layer.path
+        },
+        'layout': {},
+        'paint': {
+          'circle-color': layer.color,
+          'circle-radius': 6,
+          'circle-opacity': 0.9
+        },
+        'visibility': 'visible',
+        'filter': ['==', '$type', 'Point']
+      });
+      map.setLayoutProperty(layer.id, 'visibility', 'visible');
+    });
+  });
+
+  function toggleLayer(layerName) {
+    var visibility = map.getLayoutProperty(layers[layerName].id, 'visibility');
+    map.setLayoutProperty(layers[layerName].id, 'visibility', visibility === 'visible' ? 'none' : 'visible');
+  }
+
+  function toggleInfo() {
+    var info = document.getElementById('info-content');
+    info.classList.toggle('show');
+  }
+
+  map.on('click', function (e) {
+    var features = map.queryRenderedFeatures(e.point, { layers: Object.values(layers).map(layer => layer.id) });
+    if (!features.length) {
+      return;
+    }
+    var feature = features[0];
+    console.log(feature)
+    var art_dtsch = feature.properties.art_dtsch;
+    var tooltip = new mapboxgl.Popup()
+      .setLngLat(feature.geometry.coordinates)
+      .setHTML('<p>' + art_dtsch + '</p>')
+      .addTo(map);
+    setTimeout(function() {
+      tooltip.remove();
+    }, 3000); // Remove the tooltip after 3 seconds
+  });
+</script>
+
+</body>
+</html>
+
